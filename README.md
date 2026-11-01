@@ -1,0 +1,1 @@
+# Sentence-Flashcard-for-Automotive-English-HUAT-
