@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>句子闪卡 · 汽车发动机词汇</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --text:#e2e8f0; --muted:#94a3b8;
+    --yellow:#fde047; --yellow-bg:rgba(253,224,71,.18);
+    --orange:#fb923c; --orange-bg:rgba(251,146,60,.18);
+    --accent:#38bdf8; --line:#334155;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(circle at 20% 0%,#1e3a5f 0%,var(--bg) 55%);
+    color:var(--text); display:flex; flex-direction:column; align-items:center;
+    padding:24px 16px 48px;
+  }
+  h1{font-size:1.15rem; font-weight:600; color:var(--muted); letter-spacing:.08em; margin:0 0 18px;}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;}
+  button{
+    font:inherit; font-size:.9rem; cursor:pointer; border-radius:10px; padding:9px 16px;
+    border:1px solid var(--line); background:#243447; color:var(--text); transition:.18s;
+  }
+  button:hover{background:#2e4257; border-color:#475569;}
+  button.primary{background:var(--accent); color:#082f49; border-color:var(--accent); font-weight:600;}
+  button.primary:hover{background:#7dd3fc;}
+  button.active{background:var(--accent); color:#082f49; border-color:var(--accent); font-weight:600;}
+  .counter{font-size:.85rem; color:var(--muted); align-self:center;}
+
+  .card-wrap{width:100%; max-width:760px; perspective:1600px;}
+  .card{
+    position:relative; width:100%; min-height:340px;
+    transform-style:preserve-3d; transition:transform .55s cubic-bezier(.4,.2,.2,1);
+    cursor:pointer;
+  }
+  .card.flipped{transform:rotateY(180deg);}
+  .face{
+    position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:26px 26px 30px; display:flex; flex-direction:column;
+    box-shadow:0 18px 40px rgba(0,0,0,.45);
+  }
+  .back{transform:rotateY(180deg); overflow-y:auto;}
+  .front{justify-content:center;}
+
+  .sentence{font-size:1.32rem; line-height:2.05; font-weight:500;}
+  .front .sentence{font-size:1.42rem;}
+  .tag{padding:1px 4px; border-radius:5px; font-weight:700;}
+  .hl-yellow{color:var(--yellow); background:var(--yellow-bg); box-shadow:inset 0 -2px 0 var(--yellow);}
+  .hl-orange{color:var(--orange); background:var(--orange-bg); box-shadow:inset 0 -2px 0 var(--orange);}
+
+  .speak-row{margin-top:auto; padding-top:20px; display:flex; justify-content:center;}
+  .speak-btn{
+    display:inline-flex; align-items:center; gap:8px; font-size:.9rem;
+    background:#0b3a52; border-color:#0e7490; color:#a5f3fc;
+  }
+  .speak-btn:hover{background:#0e5a78;}
+  .hint{position:absolute; bottom:14px; left:0; right:0; text-align:center; font-size:.75rem; color:#64748b;}
+
+  .back h3{margin:0 0 4px; font-size:.95rem; color:var(--accent); letter-spacing:.05em;}
+  .back .full-trans{margin:0 0 20px; font-size:1rem; line-height:1.8; color:#cbd5e1;}
+  .items{display:flex; flex-direction:column; gap:14px;}
+  .item{
+    border:1px solid var(--line); border-left:4px solid var(--yellow);
+    border-radius:10px; padding:12px 14px; background:#172334;
+  }
+  .item.orange{border-left-color:var(--orange);}
+  .item .word{font-size:1.05rem; font-weight:700;}
+  .item.yellow .word{color:var(--yellow);}
+  .item.orange .word{color:var(--orange);}
+  .item .phon{font-family:"Charis SIL","Doulos SIL",serif; color:#7dd3fc; margin-left:8px; font-weight:400; font-size:.95rem;}
+  .item .meta{font-size:.8rem; color:var(--muted); margin:4px 0 6px;}
+  .item .pos{display:inline-block; background:#0f766e; color:#ccfbf1; border-radius:5px; padding:1px 7px; font-size:.72rem; margin-right:6px;}
+  .item .mean{font-size:.92rem; line-height:1.65; color:#e2e8f0;}
+  .item .gap-note{display:block; margin-top:6px; font-size:.82rem; color:#94a3b8;}
+  .item .gap-note em{color:var(--orange); font-style:normal;}
+
+  @media (max-width:560px){
+    .sentence, .front .sentence{font-size:1.12rem; line-height:1.95;}
+    .face{padding:20px 18px 26px;}
+    .card{min-height:420px;}
+  }
+</style>
+</head>
+<body>
+
+<h1>句子闪卡 · 汽车发动机词汇</h1>
+
+<div class="toolbar">
+  <button id="prevBtn">← 上一张</button>
+  <button id="flipBtn" class="primary">翻转卡片</button>
+  <button id="nextBtn">下一张 →</button>
+  <button id="orderBtn">顺序播放</button>
+  <span class="counter" id="counter"></span>
+</div>
+
+<div class="card-wrap">
+  <div class="card" id="card">
+    <div class="face front">
+      <div class="sentence" id="frontSentence"></div>
+      <div class="speak-row">
+        <button class="speak-btn" id="speakBtn">🔊 朗读句子</button>
+      </div>
+      <div class="hint">点击卡片翻转 · 查看音标与释义</div>
+    </div>
+    <div class="face back">
+      <h3>整句翻译</h3>
+      <p class="full-trans" id="fullTrans"></p>
+      <h3>标记词 / 词组 / 搭配</h3>
+      <div class="items" id="items"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 数据 ============ */
+const data = [
+  {
+    id: "01",
+    sentenceHTML: 'Some vehicles have a <span class="tag hl-yellow">hinged flap</span> on the engine bay for easy <span class="tag hl-yellow">access</span> to the engine.',
+    plainSentence: 'Some vehicles have a hinged flap on the engine bay for easy access to the engine.',
+    fullTrans: '有些车辆在发动机舱上装有铰链式盖板，以便于接近发动机。',
+    items: [
+      { word:'hinged flap', phon:'/hɪndʒd flæp/', pos:'名词词组', mean:'铰链式盖板；带铰链的翻板（此处指发动机舱上可掀开的盖板）', type:'yellow' },
+      { word:'access', phon:'/ˈækses/', pos:'名词', mean:'接近；进入；通道（此处 easy access to the engine 意为“便于接近发动机”）', type:'yellow' }
+    ]
+  },
+  {
+    id: "02",
+    sentenceHTML: 'Some vehicles have a <span class="tag hl-yellow">hinged</span> <span class="tag hl-yellow">flap</span> on the engine bay for easy access to the engine.',
+    plainSentence: 'Some vehicles have a hinged flap on the engine bay for easy access to the engine.',
+    fullTrans: '有些车辆在发动机舱上装有一个带铰链的盖板，以便于接近发动机。',
+    items: [
+      { word:'hinged', phon:'/hɪndʒd/', pos:'形容词', mean:'带铰链的；铰接的（由动词 hinge 的过去分词转化而来）', type:'yellow' },
+      { word:'flap', phon:'/flæp/', pos:'名词', mean:'盖板；翻板；片状覆盖物（此处指发动机舱上的盖板）', type:'yellow' }
+    ]
+  },
+  {
+    id: "03",
+    sentenceHTML: 'The <span class="tag hl-yellow">camshaft</span> <span class="tag hl-yellow">is mounted over</span> the <span class="tag hl-yellow">cylinder head</span> on <span class="tag hl-yellow">OHC</span> engines, while the camshaft is mounted inside the engine <span class="tag hl-yellow">block</span> on <span class="tag hl-yellow">OHV</span> engines.',
+    plainSentence: 'The camshaft is mounted over the cylinder head on OHC engines, while the camshaft is mounted inside the engine block on OHV engines.',
+    fullTrans: '在 OHC（顶置凸轮轴）发动机上，凸轮轴安装在气缸盖上方；而在 OHV（顶置气门）发动机上，凸轮轴安装在发动机缸体内部。',
+    items: [
+      { word:'camshaft', phon:'/ˈkæmʃɑːft/', pos:'名词', mean:'凸轮轴（发动机中驱动气门开闭的轴）', type:'yellow' },
+      { word:'is mounted over', phon:'/ɪz ˈmaʊntɪd ˈəʊvə(r)/', pos:'动词短语（被动）', mean:'被安装在……上方；mount 意为“安装、固定”，over 表示“在……上方”', type:'yellow' },
+      { word:'cylinder head', phon:'/ˈsɪlɪndə(r) hed/', pos:'名词词组', mean:'气缸盖（发动机气缸顶部的部件）', type:'yellow' },
+      { word:'OHC', phon:'/ˌəʊ eɪtʃ ˈsiː/', pos:'缩写（名词）', mean:'Overhead Camshaft 的缩写，顶置凸轮轴（发动机布置形式）', type:'yellow' },
+      { word:'block', phon:'/blɒk/', pos:'名词', mean:'（发动机）缸体；engine block 即“发动机缸体”', type:'yellow' },
+      { word:'OHV', phon:'/ˌəʊ eɪtʃ ˈviː/', pos:'缩写（名词）', mean:'Overhead Valve 的缩写，顶置气门（发动机布置形式，凸轮轴通常在缸体内）', type:'yellow' }
+    ]
+  },
+  {
+    id: "04",
+    sentenceHTML: 'The <span class="tag hl-yellow">drive ratio</span> <span class="tag hl-yellow">is determined by</span> <span class="tag hl-orange">dividing</span> <span class="tag hl-yellow">the number of</span> teeth on the <span class="tag hl-yellow">driven gear</span> <span class="tag hl-orange">by</span> <span class="tag hl-yellow">the number of</span> teeth on the <span class="tag hl-yellow">driver gear</span>.',
+    plainSentence: 'The drive ratio is determined by dividing the number of teeth on the driven gear by the number of teeth on the driver gear.',
+    fullTrans: '传动比是通过用从动齿轮的齿数除以主动齿轮的齿数来确定的。',
+    items: [
+      { word:'drive ratio', phon:'/draɪv ˈreɪʃiəʊ/', pos:'名词词组', mean:'传动比（驱动与被驱动部件之间的转速或转矩之比）', type:'yellow' },
+      { word:'is determined by', phon:'/ɪz dɪˈtɜːmɪnd baɪ/', pos:'动词短语（被动）', mean:'由……决定；通过……来确定（determine 意为“决定、确定”）', type:'yellow' },
+      {
+        word:'dividing ... by',
+        phon:'/dɪˈvaɪdɪŋ ... baɪ/',
+        pos:'动词搭配（动名词 + 介词）',
+        mean:'用……除以……；把……除以……。divide A by B 表示“用 A 除以 B”，句中 A 为从动齿轮齿数，B 为主动齿轮齿数。',
+        type:'orange',
+        gapNote:'<em>dividing</em> 与 <em>by</em> 被 “the number of teeth on the driven gear” 隔开，二者共同构成 divide ... by ... 搭配。'
+      },
+      { word:'the number of', phon:'/ðə ˈnʌmbə(r) əv/', pos:'名词词组', mean:'……的数量；……的数目（后接可数名词复数）', type:'yellow' },
+      { word:'driven gear', phon:'/ˈdrɪvn ɡɪə(r)/', pos:'名词词组', mean:'从动齿轮（被主动齿轮驱动的齿轮）', type:'yellow' },
+      { word:'driver gear', phon:'/ˈdraɪvə(r) ɡɪə(r)/', pos:'名词词组', mean:'主动齿轮；驱动齿轮（输出动力、带动从动齿轮的齿轮）', type:'yellow' }
+    ]
+  },
+  {
+    id: "05",
+    sentenceHTML: '<span class="tag hl-orange">The ratio of</span> total cylinder volume <span class="tag hl-orange">to</span> the cylinder displacement is called <span class="tag hl-yellow">compression ratio</span>.',
+    plainSentence: 'The ratio of total cylinder volume to the cylinder displacement is called compression ratio.',
+    fullTrans: '气缸总容积与气缸排量之比称为压缩比。',
+    items: [
+      {
+        word:'The ratio of ... to',
+        phon:'/ðə ˈreɪʃiəʊ əv ... tuː/',
+        pos:'名词搭配（the ratio of A to B）',
+        mean:'A 与 B 之比；A 对 B 的比值。the ratio of A to B 表示“A 与 B 的比率”，句中 A 为 total cylinder volume（气缸总容积），B 为 the cylinder displacement（气缸排量）。',
+        type:'orange',
+        gapNote:'<em>The ratio of</em> 与 <em>to</em> 被 “total cylinder volume” 隔开，二者共同构成 the ratio of A to B 搭配。'
+      },
+      { word:'compression ratio', phon:'/kəmˈpreʃn ˈreɪʃiəʊ/', pos:'名词词组', mean:'压缩比（气缸总容积与气缸排量之比，发动机重要参数）', type:'yellow' }
+    ]
+  },
+  {
+    id: "06",
+    sentenceHTML: '<span class="tag hl-orange">The ratio of</span> total cylinder volume <span class="tag hl-orange">to</span> the cylinder displacement is called <span class="tag hl-orange">compression ratio</span>.',
+    plainSentence: 'The ratio of total cylinder volume to the cylinder displacement is called compression ratio.',
+    fullTrans: '气缸总容积与气缸排量之比称为压缩比。',
+    items: [
+      {
+        word:'The ratio of ... to',
+        phon:'/ðə ˈreɪʃiəʊ əv ... tuː/',
+        pos:'名词搭配（the ratio of A to B）',
+        mean:'A 与 B 之比；A 对 B 的比值。the ratio of A to B 表示“A 与 B 的比率”，句中 A 为 total cylinder volume（气缸总容积），B 为 the cylinder displacement（气缸排量）。',
+        type:'orange',
+        gapNote:'<em>The ratio of</em> 与 <em>to</em> 被 “total cylinder volume” 隔开，二者共同构成 the ratio of A to B 搭配。'
+      },
+      { word:'compression ratio', phon:'/kəmˈpreʃn ˈreɪʃiəʊ/', pos:'名词词组', mean:'压缩比（气缸总容积与气缸排量之比，发动机重要参数）', type:'orange' }
+    ]
+  }
+];
+
+/* ============ 状态 ============ */
+let order = 'sequential';
+let deck = [...data];
+let index = 0;
+const cardEl = document.getElementById('card');
+
+const frontSentenceEl = document.getElementById('frontSentence');
+const fullTransEl = document.getElementById('fullTrans');
+const itemsEl = document.getElementById('items');
+const counterEl = document.getElementById('counter');
+const orderBtn = document.getElementById('orderBtn');
+
+/* ============ 渲染 ============ */
+function render(){
+  const cur = deck[index];
+  frontSentenceEl.innerHTML = cur.sentenceHTML;
+  fullTransEl.textContent = cur.fullTrans;
+  itemsEl.innerHTML = cur.items.map(it => `
+    <div class="item ${it.type === 'orange' ? 'orange' : 'yellow'}">
+      <div class="word">${it.word}<span class="phon">${it.phon}</span></div>
+      <div class="meta"><span class="pos">${it.pos}</span></div>
+      <div class="mean">${it.mean}${it.gapNote ? `<span class="gap-note">${it.gapNote}</span>` : ''}</div>
+    </div>
+  `).join('');
+  counterEl.textContent = `${index + 1} / ${deck.length}`;
+  cardEl.classList.remove('flipped');
+}
+
+/* ============ 发音 ============ */
+function speak(){
+  const cur = deck[index];
+  if(!('speechSynthesis' in window)){
+    alert('当前浏览器不支持语音合成，请使用 Chrome / Edge / Safari。');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(cur.plainSentence);
+  u.lang = 'en-US';
+  u.rate = 0.92;
+  u.pitch = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const en = voices.find(v => /en[-_]US/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang));
+  if(en) u.voice = en;
+  window.speechSynthesis.speak(u);
+}
+
+/* ============ 交互 ============ */
+document.getElementById('flipBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  cardEl.classList.toggle('flipped');
+});
+cardEl.addEventListener('click', () => cardEl.classList.toggle('flipped'));
+document.getElementById('speakBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  speak();
+});
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+  index = (index - 1 + deck.length) % deck.length;
+  render();
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  index = (index + 1) % deck.length;
+  render();
+});
+
+orderBtn.addEventListener('click', () => {
+  if(order === 'sequential'){
+    order = 'random';
+    orderBtn.textContent = '随机播放';
+    orderBtn.classList.add('active');
+    shuffleDeck();
+  }else{
+    order = 'sequential';
+    orderBtn.textContent = '顺序播放';
+    orderBtn.classList.remove('active');
+    deck = [...data];
+    index = 0;
+  }
+  render();
+});
+
+function shuffleDeck(){
+  deck = [...data];
+  for(let i = deck.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  index = 0;
+}
+
+/* 键盘：← → 切换，空格翻转，S 朗读 */
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowLeft'){ index = (index - 1 + deck.length) % deck.length; render(); }
+  else if(e.key === 'ArrowRight'){ index = (index + 1) % deck.length; render(); }
+  else if(e.key === ' '){ e.preventDefault(); cardEl.classList.toggle('flipped'); }
+  else if(e.key === 's' || e.key === 'S'){ speak(); }
+});
+
+if('speechSynthesis' in window){
+  window.speechSynthesis.onvoiceschanged = () => {};
+  window.speechSynthesis.getVoices();
+}
+
+render();
+</script>
+</body>
+</html>
